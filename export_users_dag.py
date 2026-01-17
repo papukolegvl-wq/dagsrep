@@ -1,10 +1,10 @@
-
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.oracle.hooks.oracle import OracleHook
 from datetime import datetime, timedelta
-import csv
 import os
+import csv
 
 default_args = {
     'owner': 'airflow',
@@ -12,49 +12,51 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-def export_users_to_file():
-    # Получаем соединение с PostgreSQL
-    # Мы создали коннекшн postgres_local с помощью команды airflow connections add
-    hook = PostgresHook(postgres_conn_id='postgres_local')
-    connection = hook.get_conn()
-    cursor = connection.cursor()
+# Папка экспорта на диске C Windows
+OUTPUT_DIR = "/mnt/c/Хранилище"
+
+def export_to_storage():
+    """Задача: Выгрузка данных из PG и Oracle в CSV файлы в Хранилище"""
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
+        print(f"Создана папка: {OUTPUT_DIR}")
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
-    # Выполняем запрос
-    cursor.execute("SELECT * FROM test_users")
-    rows = cursor.fetchall()
+    # 1. Выгрузка из Postgres (Users)
+    print("Экспорт из Postgres...")
+    pg_hook = PostgresHook(postgres_conn_id='postgres_local')
+    pg_records = pg_hook.get_records("SELECT * FROM test_users")
+    pg_file = os.path.join(OUTPUT_DIR, f"pg_users_{timestamp}.csv")
     
-    # Получаем названия колонок
-    colnames = [desc[0] for desc in cursor.description]
-    
-    # Определяем путь к папке (В WSL /mnt/c/ это диск C: в Windows)
-    output_dir = "/mnt/c/Хранилище"
-    
-    # Создаем папку если её нет
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
-    # Формируем имя файла с текущей датой
-    filename = f"users_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    file_path = os.path.join(output_dir, filename)
-    
-    # Записываем в CSV
-    with open(file_path, 'w', newline='', encoding='utf-8') as f:
+    with open(pg_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(colnames)
-        writer.writerows(rows)
-        
-    print(f"Успешно выгружено {len(rows)} строк в файл: {file_path}")
+        writer.writerow(['ID', 'USERNAME', 'EMAIL', 'CREATED_AT']) # Заголовки (подправьте под вашу структуру)
+        writer.writerows(pg_records)
+    print(f"Данные Postgres сохранены: {pg_file}")
+
+    # 2. Выгрузка из Oracle (Payments)
+    print("Экспорт из Oracle...")
+    oracle_hook = OracleHook(oracle_conn_id='oracle_local')
+    ora_records = oracle_hook.get_records("SELECT * FROM SYSTEM.PAYMENTS")
+    ora_file = os.path.join(OUTPUT_DIR, f"oracle_payments_{timestamp}.csv")
+    
+    with open(ora_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['PAYMENT_ID', 'USER_ID', 'AMOUNT', 'PAYMENT_DATE', 'STATUS'])
+        writer.writerows(ora_records)
+    print(f"Данные Oracle сохранены: {ora_file}")
 
 with DAG(
-    'export_users_to_disk_c',
+    'export_pg_and_oracle_to_csv',
     default_args=default_args,
-    description='Выгрузка пользователей из Postgres на Диск C',
+    description='Только экспорт данных из PG и Oracle в CSV файлы',
     start_date=datetime(2024, 1, 1),
-     # Запуск вручную, или поставьте '@daily'
+    schedule=None,
     catchup=False,
 ) as dag:
 
-    export_task = PythonOperator(
-        task_id='export_postgres_to_local_file',
-        python_callable=export_users_to_file,
+    task_export = PythonOperator(
+        task_id='export_databases_to_csv',
+        python_callable=export_to_storage,
     )
