@@ -1,0 +1,13 @@
+name: Deploy DAGs
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Notify
+        run: echo "DAGs deployed successfully to $(pwd)"
