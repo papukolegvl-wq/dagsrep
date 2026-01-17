@@ -50,7 +50,7 @@ with DAG(
     default_args=default_args,
     description='Выгрузка пользователей из Postgres на Диск C',
     start_date=datetime(2024, 1, 1),
-    schedule=None, # Запуск вручную, или поставьте '@daily'
+     # Запуск вручную, или поставьте '@daily'
     catchup=False,
 ) as dag:
 

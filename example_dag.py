@@ -17,7 +17,7 @@ with DAG(
     'example_github_sync_dag',
     default_args=default_args,
     description='A simple DAG synced from GitHub',
-    schedule=timedelta(days=1),
+    
     catchup=False,
 ) as dag:
 
