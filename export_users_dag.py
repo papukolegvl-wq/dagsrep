@@ -31,7 +31,7 @@ def export_to_storage():
     
     with open(pg_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(['ID', 'USERNAME', 'EMAIL', 'CREATED_AT']) # Заголовки (подправьте под вашу структуру)
+        writer.writerow(['ID', 'USERNAME', 'EMAIL', 'CREATED_AT'])
         writer.writerows(pg_records)
     print(f"Данные Postgres сохранены: {pg_file}")
 
@@ -48,9 +48,9 @@ def export_to_storage():
     print(f"Данные Oracle сохранены: {ora_file}")
 
 with DAG(
-    'export_pg_and_oracle_to_csv',
+    'export_users_to_disk_c',
     default_args=default_args,
-    description='Только экспорт данных из PG и Oracle в CSV файлы',
+    description='Выгрузка пользователей из Postgres и платежей из Oracle на Диск C',
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
