@@ -1,4 +1,3 @@
-
 name: Deploy DAGs
 on:
   push:
@@ -10,5 +9,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Deployment Success
-        run: echo "Successfully deployed DAGs to $(pwd)"
+      - name: Notify
+        run: echo "DAGs deployed successfully to $(pwd)"
